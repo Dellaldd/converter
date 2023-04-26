@@ -58,6 +58,7 @@
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
 
+  <depend>eigen_conversions</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

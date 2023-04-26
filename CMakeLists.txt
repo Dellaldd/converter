@@ -7,8 +7,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   image_transport
+  eigen_conversions
 )
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -100,9 +102,9 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES converter
+ LIBRARIES converter eigen_conversions
  CATKIN_DEPENDS roscpp std_msgs cv_bridge image_transport
- DEPENDS OpenCV
+ DEPENDS OpenCV EIGEN3
 )
 
 ###########
@@ -122,7 +124,7 @@ include_directories(
 #   src/converter.cpp
 # )
 
-add_executable(image src/image.cpp)
+add_executable(image src/imu_data.cpp)
 # target_link_libraries(talker ${catkin_LIBRARIES})
 # add_dependencies(talker beginner_tutorials_generate_messages_cpp)
 
