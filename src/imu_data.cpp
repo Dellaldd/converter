@@ -49,7 +49,13 @@ class ImuConver{
             imu_full.orientation.y = q.y();
             imu_full.orientation.z = q.z();
             imu_full.orientation.w = q.w();
-            
+
+            Matrix3f rx = q.toRotationMatrix();
+            Eigen::Vector3f ea = rx.eulerAngles(2,1,0);
+            euler.header = msg->header;
+            euler.vector.x = ea[0];
+            euler.vector.y = ea[1];
+            euler.vector.z = ea[2];      
         }
         
     
@@ -83,14 +89,14 @@ int main(int argc, char *argv[]){
     ros::NodeHandle nh("~");
     ImuConver imuConver(nh);
     ros::Publisher imu_full_pub = nh.advertise<sensor_msgs::Imu>("/mavros/imu/full",1);
-    // ros::Publisher euler_pub = nh.advertise<geometry_msgs::Vector3Stamped>("/euler",1);
+    ros::Publisher euler_pub = nh.advertise<geometry_msgs::Vector3Stamped>("/euler",1);
     
     ros::Rate loop_rate(140);
     
     imuConver.initial();
     while (ros::ok()){
         imu_full_pub.publish(imuConver.imu_full);
-        // euler_pub.publish(imuConver.euler);
+        euler_pub.publish(imuConver.euler);
         ros::spinOnce();
         loop_rate.sleep();
     }
