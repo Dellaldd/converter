@@ -6,6 +6,7 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/MagneticField.h>
 #include <Eigen/Dense>
+#include <geometry_msgs/Vector3Stamped.h>
 using namespace Eigen;
 using namespace std;
 
@@ -38,9 +39,17 @@ class ImuConver{
         }
 
         void imu_Callback(const sensor_msgs::ImuConstPtr& msg){
-            imu_gyro[0] = msg->angular_velocity.x;
-            imu_gyro[1] = msg->angular_velocity.y;
-            imu_gyro[2] = msg->angular_velocity.z;
+            q.x() = msg->orientation.x;
+            q.y() = msg->orientation.y;
+            q.z() = msg->orientation.z;
+            q.w() = msg->orientation.w;
+            Matrix3f r = q.toRotationMatrix();
+            vec = r.eulerAngles(2,1,0);
+            euler.header = msg->header;
+            euler.vector.x = vec[0];
+            euler.vector.y = vec[1];
+            euler.vector.z = vec[2];
+            
         }
         
     
@@ -55,12 +64,16 @@ class ImuConver{
         }
 
     sensor_msgs::Imu imu_full;
+    geometry_msgs::Vector3Stamped euler;
 
     private:
         ros::NodeHandle n;
         ros::Subscriber imu_mag_sub, imu_raw_sub, imu_sub;
         float scale = 1;
-        Vector3f imu_gyro, imu_raw_gyro, imu_raw_acc;
+        Vector3f imu_raw_gyro, imu_raw_acc;
+        
+        Quaternionf q;
+        Vector3f vec;
         
 };
 
@@ -70,12 +83,14 @@ int main(int argc, char *argv[]){
     ros::NodeHandle nh("~");
     ImuConver imuConver(nh);
     ros::Publisher imu_full_pub = nh.advertise<sensor_msgs::Imu>("/mavros/imu/full",1);
+    ros::Publisher euler_pub = nh.advertise<geometry_msgs::Vector3Stamped>("/euler",1);
     
     ros::Rate loop_rate(100);
     
     imuConver.initial();
     while (ros::ok()){
         imu_full_pub.publish(imuConver.imu_full);
+        euler_pub.publish(imuConver.euler);
         ros::spinOnce();
         loop_rate.sleep();
     }
