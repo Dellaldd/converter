@@ -28,9 +28,9 @@ class ImuConver{
 
             imu_full.header = msg->header;
 
-            imu_full.angular_velocity.x = imu_raw_gyro[0]*180*3.1415926;
-            imu_full.angular_velocity.y = imu_raw_gyro[1]*180*3.1415926;
-            imu_full.angular_velocity.z = imu_raw_gyro[2]*180*3.1415926;//rad/s
+            imu_full.angular_velocity.x = imu_raw_gyro[0]/180*3.1415926;
+            imu_full.angular_velocity.y = imu_raw_gyro[1]/180*3.1415926;
+            imu_full.angular_velocity.z = imu_raw_gyro[2]/180*3.1415926;//rad/s
 
             imu_full.linear_acceleration.x = -imu_raw_acc[0]*9.80665;
             imu_full.linear_acceleration.y = -imu_raw_acc[1]*9.80665;
