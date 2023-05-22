@@ -124,7 +124,7 @@ include_directories(
 #   src/converter.cpp
 # )
 
-add_executable(image src/imu_data.cpp)
+add_executable(imu src/imu_data.cpp)
 # target_link_libraries(talker ${catkin_LIBRARIES})
 # add_dependencies(talker beginner_tutorials_generate_messages_cpp)
 
@@ -137,7 +137,7 @@ add_executable(image src/imu_data.cpp)
 #   # ${catkin_EXPORTED_TARGETS}
 # )
 
-target_link_libraries(image
+target_link_libraries(imu
   ${catkin_LIBRARIES}
 )
 ## Add cmake target dependencies of the library

@@ -28,13 +28,13 @@ class ImuConver{
 
             imu_full.header = msg->header;
 
-            imu_full.angular_velocity.x = imu_raw_gyro[0];
-            imu_full.angular_velocity.y = imu_raw_gyro[1];
-            imu_full.angular_velocity.z = imu_raw_gyro[2];//deg/s
+            imu_full.angular_velocity.x = imu_raw_gyro[0]*180*3.1415926;
+            imu_full.angular_velocity.y = imu_raw_gyro[1]*180*3.1415926;
+            imu_full.angular_velocity.z = imu_raw_gyro[2]*180*3.1415926;//rad/s
 
-            imu_full.linear_acceleration.x = imu_raw_acc[0];
-            imu_full.linear_acceleration.y = imu_raw_acc[1];
-            imu_full.linear_acceleration.z = imu_raw_acc[2]; //g
+            imu_full.linear_acceleration.x = -imu_raw_acc[0]*9.80665;
+            imu_full.linear_acceleration.y = -imu_raw_acc[1]*9.80665;
+            imu_full.linear_acceleration.z = -imu_raw_acc[2]*9.80665; //g
 
         }
 
@@ -45,6 +45,7 @@ class ImuConver{
             q = Eigen::AngleAxisf(vec[0], ::Eigen::Vector3f::UnitZ()) *
             Eigen::AngleAxisf(vec[1], ::Eigen::Vector3f::UnitY()) *
             Eigen::AngleAxisf(vec[2], ::Eigen::Vector3f::UnitX());
+            
             imu_full.orientation.x = q.x();
             imu_full.orientation.y = q.y();
             imu_full.orientation.z = q.z();
