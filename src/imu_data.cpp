@@ -7,6 +7,8 @@
 #include <sensor_msgs/MagneticField.h>
 #include <Eigen/Dense>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <mavros_msgs/PositionTarget.h>
 using namespace Eigen;
 using namespace std;
 
@@ -52,11 +54,34 @@ class ImuConver{
             imu_full.orientation.w = q.w();
 
             Matrix3f rx = q.toRotationMatrix();
-            Eigen::Vector3f ea = rx.eulerAngles(2,1,0);
-            euler.header = msg->header;
-            euler.vector.x = ea[0];
-            euler.vector.y = ea[1];
-            euler.vector.z = ea[2];      
+            Eigen::Vector3f ea = rx.eulerAngles(2,1,0);      
+        }
+
+        void openvins_Callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg){
+            Eigen::Quaternionf q;
+            q.x() = msg->pose.pose.orientation.x;
+            q.y() = msg->pose.pose.orientation.y;
+            q.z() = msg->pose.pose.orientation.z;
+            q.w() = msg->pose.pose.orientation.w;
+            Matrix3f rx = q.toRotationMatrix();
+            Eigen::Vector3f ea = rx.eulerAngles(2,1,0); 
+            pos.position.x = msg->pose.pose.position.x;
+            pos.position.y = msg->pose.pose.position.y;
+            pos.position.z = msg->pose.pose.position.z;
+            pos.yaw = ea[2];
+            pos.type_mask = // mavros_msgs::PositionTarget::IGNORE_PX |
+                                    // mavros_msgs::PositionTarget::IGNORE_PY |
+                                    // mavros_msgs::PositionTarget::IGNORE_PZ |
+                                    mavros_msgs::PositionTarget::IGNORE_VX |
+                                    mavros_msgs::PositionTarget::IGNORE_VY |
+                                    mavros_msgs::PositionTarget::IGNORE_VZ |
+                                    mavros_msgs::PositionTarget::IGNORE_AFX |
+                                    mavros_msgs::PositionTarget::IGNORE_AFY |
+                                    mavros_msgs::PositionTarget::IGNORE_AFZ |
+                                    mavros_msgs::PositionTarget::FORCE |
+                                    // mavros_msgs::PositionTarget::IGNORE_YAW |
+                                    mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
+            pos.header = msg->header;  
         }
         
     
@@ -64,6 +89,7 @@ class ImuConver{
             imu_mag_sub = n.subscribe<sensor_msgs::MagneticField>("/mavros/imu/mag", 140, &ImuConver::magCallback,this);
             imu_raw_sub = n.subscribe<sensor_msgs::Imu>("/mavros/imu/data_raw", 140, &ImuConver::imu_rawCallback,this);
             imu_sub = n.subscribe<sensor_msgs::Imu>("/mavros/imu/data", 140, &ImuConver::imu_Callback,this);
+            openvins_sub = n.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/ov_msckf/poseimu", 15, &ImuConver::openvins_Callback,this);
         }
 
         ImuConver(const ros::NodeHandle& nh):n(nh){
@@ -71,11 +97,11 @@ class ImuConver{
         }
 
     sensor_msgs::Imu imu_full;
-    geometry_msgs::Vector3Stamped euler;
+    mavros_msgs::PositionTarget pos;
 
     private:
         ros::NodeHandle n;
-        ros::Subscriber imu_mag_sub, imu_raw_sub, imu_sub;
+        ros::Subscriber imu_mag_sub, imu_raw_sub, imu_sub, openvins_sub;
         float scale = 1;
         Vector3f imu_raw_gyro, imu_raw_acc;
         
@@ -90,14 +116,14 @@ int main(int argc, char *argv[]){
     ros::NodeHandle nh("~");
     ImuConver imuConver(nh);
     ros::Publisher imu_full_pub = nh.advertise<sensor_msgs::Imu>("/mavros/imu/full",1);
-    ros::Publisher euler_pub = nh.advertise<geometry_msgs::Vector3Stamped>("/euler",1);
-    
+    ros::Publisher setpoint_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local",1);
+
     ros::Rate loop_rate(140);
     
     imuConver.initial();
     while (ros::ok()){
         imu_full_pub.publish(imuConver.imu_full);
-        euler_pub.publish(imuConver.euler);
+        setpoint_pub.publish(imuConver.pos);
         ros::spinOnce();
         loop_rate.sleep();
     }
