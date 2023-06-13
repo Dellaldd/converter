@@ -12,6 +12,46 @@
 using namespace Eigen;
 using namespace std;
 
+// low-pass
+class LowPassFilter {
+public:
+    LowPassFilter(double sample_rate, double cutoff_frequency) {
+        double dt = 1.0 / sample_rate;
+        double RC = 1.0 / (cutoff_frequency * 2.0 * M_PI);
+        alpha_ = dt / (dt + RC);
+        prev_output_ = 0.0;
+    }
+
+    LowPassFilter() {
+        double sample_rate = 140;
+        double cutoff_frequency = 50;
+        double dt = 1.0 / sample_rate;
+        double RC = 1.0 / (cutoff_frequency * 2.0 * M_PI);
+        alpha_ = dt / (dt + RC);
+        prev_output_ = 0.0;
+    }
+ 
+    // update output
+    double update_acc(double input) {
+        alpha_ = 0.2;
+        double output = alpha_ * input + (1.0 - alpha_) * prev_output_;
+        prev_output_ = output;
+        return output;
+    }
+
+    double update_angular(double input) {
+        alpha_ = 0.3;
+        double output = alpha_ * input + (1.0 - alpha_) * prev_output_;
+        prev_output_ = output;
+        return output;
+    }
+ 
+private:
+    double alpha_;
+    double prev_output_;
+};
+
+
 class ImuConver{
     public:
         std_msgs::Header header;
@@ -29,14 +69,13 @@ class ImuConver{
             imu_raw_gyro[2] = msg->angular_velocity.z * 17.4532925;
 
             imu_full.header = msg->header;
+            imu_full.angular_velocity.x = filter_angular_1.update_angular(imu_raw_gyro[0]);
+            imu_full.angular_velocity.y = filter_angular_2.update_angular(imu_raw_gyro[1]);
+            imu_full.angular_velocity.z = filter_angular_3.update_angular(imu_raw_gyro[2]);//rad/s
 
-            imu_full.angular_velocity.x = imu_raw_gyro[0]/180*3.1415926;
-            imu_full.angular_velocity.y = imu_raw_gyro[1]/180*3.1415926;
-            imu_full.angular_velocity.z = imu_raw_gyro[2]/180*3.1415926;//rad/s
-
-            imu_full.linear_acceleration.x = -imu_raw_acc[0]*9.80665;
-            imu_full.linear_acceleration.y = -imu_raw_acc[1]*9.80665;
-            imu_full.linear_acceleration.z = -imu_raw_acc[2]*9.80665; //g
+            imu_full.linear_acceleration.x = filter_acc_1.update_acc(imu_raw_acc[0]*9.80665);
+            imu_full.linear_acceleration.y = filter_acc_2.update_acc(imu_raw_acc[1]*9.80665);
+            imu_full.linear_acceleration.z = filter_acc_3.update_acc(imu_raw_acc[2]*9.80665); //g
 
         }
 
@@ -68,6 +107,7 @@ class ImuConver{
             pos.position.x = msg->pose.pose.position.x;
             pos.position.y = msg->pose.pose.position.y;
             pos.position.z = msg->pose.pose.position.z;
+            pos.velocity.x;
             pos.yaw = ea[2];
             pos.type_mask = // mavros_msgs::PositionTarget::IGNORE_PX |
                                     // mavros_msgs::PositionTarget::IGNORE_PY |
@@ -81,6 +121,7 @@ class ImuConver{
                                     mavros_msgs::PositionTarget::FORCE |
                                     // mavros_msgs::PositionTarget::IGNORE_YAW |
                                     mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
+            pos.coordinate_frame = 1;
             pos.header = msg->header;  
         }
         
@@ -104,10 +145,9 @@ class ImuConver{
         ros::Subscriber imu_mag_sub, imu_raw_sub, imu_sub, openvins_sub;
         float scale = 1;
         Vector3f imu_raw_gyro, imu_raw_acc;
-        
         Quaternionf q;
         Vector3f vec;
-        
+        LowPassFilter filter_acc_1, filter_acc_2, filter_acc_3, filter_angular_1, filter_angular_2, filter_angular_3;
 };
 
 
