@@ -9,6 +9,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <mavros_msgs/PositionTarget.h>
+#include <tf/tf.h>
 using namespace Eigen;
 using namespace std;
 
@@ -33,14 +34,14 @@ public:
  
     // update output
     double update_acc(double input) {
-        alpha_ = 0.2;
+        alpha_ = 0.005;
         double output = alpha_ * input + (1.0 - alpha_) * prev_output_;
         prev_output_ = output;
         return output;
     }
 
     double update_angular(double input) {
-        alpha_ = 0.3;
+        alpha_ =  0.05;
         double output = alpha_ * input + (1.0 - alpha_) * prev_output_;
         prev_output_ = output;
         return output;
@@ -97,18 +98,18 @@ class ImuConver{
         }
 
         void openvins_Callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg){
-            Eigen::Quaternionf q;
-            q.x() = msg->pose.pose.orientation.x;
-            q.y() = msg->pose.pose.orientation.y;
-            q.z() = msg->pose.pose.orientation.z;
-            q.w() = msg->pose.pose.orientation.w;
-            Matrix3f rx = q.toRotationMatrix();
-            Eigen::Vector3f ea = rx.eulerAngles(2,1,0); 
+            
+            tf::Quaternion rq;
+            tf::quaternionMsgToTF(msg->pose.pose.orientation, rq);
+            double phi, theta, psi;
+            tf::Matrix3x3(rq).getRPY(phi,
+                           theta,
+                           psi);
+
             pos.position.x = msg->pose.pose.position.x;
             pos.position.y = msg->pose.pose.position.y;
             pos.position.z = msg->pose.pose.position.z;
-            pos.velocity.x;
-            pos.yaw = ea[2];
+            pos.yaw = phi;
             pos.type_mask = // mavros_msgs::PositionTarget::IGNORE_PX |
                                     // mavros_msgs::PositionTarget::IGNORE_PY |
                                     // mavros_msgs::PositionTarget::IGNORE_PZ |

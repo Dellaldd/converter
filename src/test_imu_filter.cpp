@@ -33,14 +33,19 @@ public:
  
     // update output
     double update_acc(double input) {
-        alpha_ = 0.2;
+        alpha_ = 0.01;
         double output = alpha_ * input + (1.0 - alpha_) * prev_output_;
         prev_output_ = output;
         return output;
     }
 
-    double update_angular(double input) {
-        alpha_ = 0.3;
+    double update_angular(double input, int coordinate) {
+        if (coordinate == 2){
+            alpha_ = 0.01;
+        }else{
+            alpha_ = 0.02;
+        }
+        
         double output = alpha_ * input + (1.0 - alpha_) * prev_output_;
         prev_output_ = output;
         return output;
@@ -61,9 +66,9 @@ class ImuConver{
         void imu_rawCallback(const sensor_msgs::ImuConstPtr& msg){
 
             imu_filter.header = msg->header;
-            imu_filter.angular_velocity.x = filter_angular_1.update_angular(msg->angular_velocity.x);
-            imu_filter.angular_velocity.y = filter_angular_2.update_angular(msg->angular_velocity.y);
-            imu_filter.angular_velocity.z = filter_angular_3.update_angular(msg->angular_velocity.z);//rad/s
+            imu_filter.angular_velocity.x = filter_angular_1.update_angular(msg->angular_velocity.x,0);
+            imu_filter.angular_velocity.y = filter_angular_2.update_angular(msg->angular_velocity.y,1);
+            imu_filter.angular_velocity.z = filter_angular_3.update_angular(msg->angular_velocity.z,2);//rad/s
 
             imu_filter.orientation.x = msg->orientation.x;
             imu_filter.orientation.y = msg->orientation.y;
