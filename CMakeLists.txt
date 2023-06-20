@@ -25,7 +25,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(imu src/test_imu_filter.cpp)
+add_executable(imu src/imu_data.cpp)
 
 
 target_link_libraries(imu
