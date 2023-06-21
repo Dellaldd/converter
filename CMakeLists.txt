@@ -25,7 +25,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(imu src/imu_data.cpp)
+add_executable(imu src/OptitrackHover.cpp)
 
 
 target_link_libraries(imu
