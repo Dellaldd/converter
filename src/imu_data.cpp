@@ -106,42 +106,29 @@ class ImuConver{
             tf::quaternionMsgToTF(msg->pose.pose.orientation, rq);
             Vector3d ea;
             tf::Matrix3x3(rq).getRPY(ea[0], ea[1], ea[2]);
-            //Eigen::Quaternionf q;
-            //q.x() = msg->pose.pose.orientation.x;
-            //q.y() = msg->pose.pose.orientation.y;
-            //q.z() = msg->pose.pose.orientation.z;
-            //q.w() = msg->pose.pose.orientation.w;
-            // Matrix3f rx = q.toRotationMatrix();
-            // Eigen::Vector3f ea = rx.eulerAngles(2,1,0); 
+            
             pos.position.x = msg->pose.pose.position.x;
             pos.position.y = msg->pose.pose.position.y;
             pos.position.z = msg->pose.pose.position.z;
             pos.yaw_rate = ea[2];
-            //pos.yaw = ea[2];
-            //pos.type_mask = // mavros_msgs::PositionTarget::IGNORE_PX |
-                                    // mavros_msgs::PositionTarget::IGNORE_PY |
-                                    // mavros_msgs::PositionTarget::IGNORE_PZ |
-                                    //mavros_msgs::PositionTarget::IGNORE_VX |
-                                    //mavros_msgs::PositionTarget::IGNORE_VY |
-                                    //mavros_msgs::PositionTarget::IGNORE_VZ |
-                                    //mavros_msgs::PositionTarget::IGNORE_AFX |
-                                    //mavros_msgs::PositionTarget::IGNORE_AFY |
-                                    //mavros_msgs::PositionTarget::IGNORE_AFZ |
-                                    //mavros_msgs::PositionTarget::FORCE |
-                                    // mavros_msgs::PositionTarget::IGNORE_YAW |
-                                    //mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
+            
             pos.type_mask = 0b011111111000;
             pos.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_NED;
             pos.header = msg->header;  
             
         }
+
+        void imu_state_Callback(const sensor_msgs::ImuConstPtr& msg){
+            // if(pos.yaw_rate != 0)
+            cout << "yaw_rate:" << pos.yaw_rate << " current imu state: " << msg->linear_acceleration  << endl;     
+        }
         
-    
         void initial(){
             imu_mag_sub = n.subscribe<sensor_msgs::MagneticField>("/mavros/imu/mag", 140, &ImuConver::magCallback,this);
             imu_raw_sub = n.subscribe<sensor_msgs::Imu>("/mavros/imu/data_raw", 140, &ImuConver::imu_rawCallback,this);
             imu_sub = n.subscribe<sensor_msgs::Imu>("/mavros/imu/data", 140, &ImuConver::imu_Callback,this);
             openvins_sub = n.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/ov_msckf/poseimu", 15, &ImuConver::openvins_Callback,this);
+            imu_state_sub = n.subscribe<sensor_msgs::Imu>("/mavros/imu/full", 140, &ImuConver::imu_state_Callback,this);
         }
 
         ImuConver(const ros::NodeHandle& nh):n(nh){
@@ -153,13 +140,12 @@ class ImuConver{
 
     private:
         ros::NodeHandle n;
-        ros::Subscriber imu_mag_sub, imu_raw_sub, imu_sub, openvins_sub;
+        ros::Subscriber imu_mag_sub, imu_raw_sub, imu_sub, openvins_sub, imu_state_sub;
         float scale = 1;
         Vector3f imu_raw_gyro, imu_raw_acc;   
         Quaternionf q;
         Vector3f vec;
-        LowPassFilter filter_acc_1, filter_acc_2, filter_acc_3, filter_angular_1, filter_angular_2, filter_angular_3;
-        
+        LowPassFilter filter_acc_1, filter_acc_2, filter_acc_3, filter_angular_1, filter_angular_2, filter_angular_3;     
 };
 
 
@@ -174,16 +160,14 @@ int main(int argc, char *argv[]){
     imuConver.initial();
     cout << "start convert!" << endl;
     while (ros::ok()){
-        //cout << "pos:" << imuConver.pos.position << endl;
-        //cout << "yaw:" << imuConver.pos.yaw << endl;
-        //cout << "type" << imuConver.pos.type_mask << endl;
-        //cout << "header" << imuConver.pos.header << endl;
+        
+        if(imuConver.imu_full.linear_acceleration.x!=0){
+            imu_full_pub.publish(imuConver.imu_full);
+        }
     	setpoint_pub.publish(imuConver.pos);
-        imu_full_pub.publish(imuConver.imu_full);
         
         ros::spinOnce();
         loop_rate.sleep();
     }
-
     return 0;
 }
